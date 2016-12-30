@@ -4,6 +4,14 @@
 
 ;(function() {
     'use strict';
+
+    browser.browserAction.onClicked.addListener(() => {
+        console.log('loading browser action');
+        browser.tabs.create({
+           "url": "/index.html"
+        });
+    });
+
     window.onInvalidStateError = function(e) {
         console.log(e);
     };

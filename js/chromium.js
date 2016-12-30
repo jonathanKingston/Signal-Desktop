@@ -47,7 +47,16 @@
     extension.windows = {
         open: function(options, callback) {
             if (chrome.windows) {
-                chrome.windows.create(options, callback);
+                try {
+                  chrome.windows.create(options, callback);
+                } catch (e) {
+console.log('err loading window', e, options);
+                  if (/"focused"/.test(e.message)) {
+                    chrome.tabs.create({
+                      url: options.url
+                    }, callback);
+                  }
+                }
             } else if (chrome.app.window) {
                 var url = options.url;
                 delete options.url;
@@ -94,7 +103,6 @@
                 var bg = chrome.extension.getBackgroundPage();
                 bg.storage.onready(function() {
                     callback(bg);
-                    resolve();
                 });
             } else if (chrome.runtime) {
                 chrome.runtime.getBackgroundPage(function(bg) {
@@ -106,7 +114,11 @@
         },
 
         getAll: function() {
-            return chrome.app.window.getAll();
+            if (chrome.extension) {
+                return browser.extension.getViews({type: "tab"});
+            } else if (chrome.app.window) {
+                return chrome.app.window.getAll();
+            }
         },
 
         getViews: function() {
@@ -187,14 +199,23 @@
             id = 'standalone-installer';
             url = 'register.html';
         }
-        if (!chrome.app.window.get(id)) {
-            extension.windows.open({
-                id: id,
-                url: url,
-                bounds: { width: 800, height: 666, },
-                minWidth: 800,
-                minHeight: 666
+        if (chrome.app) {
+            if (!chrome.app.window.get(id)) {
+                extension.windows.open({
+                    id: id,
+                    url: url,
+                    bounds: { width: 800, height: 666, },
+                    minWidth: 800,
+                    minHeight: 666
+                });
+            }
+        } else {
+          let windows = extension.windows.getAll();
+          if (windows.length === 0) {
+            browser.tabs.create({
+                url: url
             });
+          }
         }
     };
 
@@ -207,13 +228,15 @@
                     extension.notification.clear();
                     Whisper.Notifications.onclick();
                 });
-                chrome.notifications.onButtonClicked.addListener(function() {
-                    extension.notification.clear();
-                    Whisper.Notifications.clear();
-                    getInboxCollection().each(function(model) {
-                        model.markRead();
+                if (chrome.notifications.onButtonClicked) {
+                    chrome.notifications.onButtonClicked.addListener(function() {
+                        extension.notification.clear();
+                        Whisper.Notifications.clear();
+                        getInboxCollection().each(function(model) {
+                            model.markRead();
+                        });
                     });
-                });
+                }
                 chrome.notifications.onClosed.addListener(function(id, byUser) {
                     if (byUser) {
                         Whisper.Notifications.clear();

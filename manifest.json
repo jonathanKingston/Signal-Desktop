@@ -10,12 +10,11 @@
     "default_locale": "en",
 
     "permissions": [
-      "unlimitedStorage",
+      "<all_urls>",
+      "tabs",
       "notifications",
-      {"fileSystem": ["write"]},
       "alarms",
-      "fullscreen",
-      "audioCapture"
+      "fullscreen"
     ],
 
     "icons": {
@@ -30,5 +29,17 @@
       "background": {
           "page": "background.html"
       }
+    },
+
+    "background": {
+        "page": "background.html"
+    },
+
+    "browser_action": {
+      "default_icon": {
+        "16": "images/icon_16.png",
+        "32": "images/icon_32.png"
+      },
+      "browser_style": true
     }
 }

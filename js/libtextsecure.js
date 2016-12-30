@@ -37098,6 +37098,7 @@ Internal.SessionLock.queueJobForNumber = function queueJobForNumber(number, runJ
         this.path = request.path;
         this.body = request.body;
 
+console.log('incoming web socket', options);
         this.respond = function(status, message) {
             socket.send(
                 new textsecure.protobuf.WebSocketMessage({
@@ -37112,6 +37113,7 @@ Internal.SessionLock.queueJobForNumber = function queueJobForNumber(number, runJ
     var OutgoingWebSocketRequest = function(options, socket) {
         var request = new Request(options);
         outgoing[request.id] = request;
+console.log('outgoing web socket', options);
         socket.send(
             new textsecure.protobuf.WebSocketMessage({
                 type: textsecure.protobuf.WebSocketMessage.Type.REQUEST,
@@ -37142,6 +37144,7 @@ Internal.SessionLock.queueJobForNumber = function queueJobForNumber(number, runJ
             var reader = new FileReader();
             reader.onload = function() {
                 var message = textsecure.protobuf.WebSocketMessage.decode(reader.result);
+console.log('outgoing message', message);
                 if (message.type === textsecure.protobuf.WebSocketMessage.Type.REQUEST ) {
                     handleRequest(
                         new IncomingWebSocketRequest({
@@ -37156,6 +37159,7 @@ Internal.SessionLock.queueJobForNumber = function queueJobForNumber(number, runJ
                 else if (message.type === textsecure.protobuf.WebSocketMessage.Type.RESPONSE ) {
                     var response = message.response;
                     var request = outgoing[response.id];
+console.log('Incoming response', request, String(request.success));
                     if (request) {
                         request.response = response;
                         var callback = request.error;
@@ -37930,6 +37934,7 @@ var TextSecureServer = (function() {
             var getSocket = this.server.getProvisioningSocket.bind(this.server);
             var provisioningCipher = new libsignal.ProvisioningCipher();
             return provisioningCipher.getPublicKey().then(function(pubKey) {
+console.log('Starting provision', getString(pubKey), btoa(getString(pubKey)));
                 return new Promise(function(resolve, reject) {
                     var socket = getSocket();
                     socket.onclose = function(e) {
@@ -37939,8 +37944,10 @@ var TextSecureServer = (function() {
                     var wsr = new WebSocketResource(socket, {
                         keepalive: { path: '/v1/keepalive/provisioning' },
                         handleRequest: function(request) {
+console.log('resource message', request);
                             if (request.path === "/v1/address" && request.verb === "PUT") {
                                 var proto = textsecure.protobuf.ProvisioningUuid.decode(request.body);
+console.log('outbound resource socket', proto);
                                 setProvisioningUrl([
                                     'tsdevice:/?uuid=', proto.uuid, '&pub_key=',
                                     encodeURIComponent(btoa(getString(pubKey)))
@@ -37948,6 +37955,7 @@ var TextSecureServer = (function() {
                                 request.respond(200, 'OK');
                             } else if (request.path === "/v1/message" && request.verb === "PUT") {
                                 var envelope = textsecure.protobuf.ProvisionEnvelope.decode(request.body, 'binary');
+console.log('Inbound response', envelope);
                                 request.respond(200, 'OK');
                                 wsr.close();
                                 resolve(provisioningCipher.decrypt(envelope).then(function(provisionMessage) {
@@ -38025,6 +38033,7 @@ var TextSecureServer = (function() {
             }.bind(this));
         },
         generateKeys: function (count, progressCallback) {
+console.log('generating keys', arguments);
             if (typeof progressCallback !== 'function') {
                 progressCallback = undefined;
             }
